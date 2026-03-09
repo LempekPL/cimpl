@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef enum {
     // token characters
@@ -26,6 +27,7 @@ typedef enum {
     TOKEN_AND,
     TOKEN_BITOR,
     TOKEN_OR,
+    TOKEN_COLON,
     TOKEN_SEMICOLON,
     TOKEN_LPAREN,    
     TOKEN_RPAREN,    
@@ -43,7 +45,9 @@ typedef enum {
     TOKEN_IDENTIFIER, 
     TOKEN_INTEGER,
     TOKEN_DECIMAL,
-    TOKEN_STRING
+    TOKEN_STRING,
+
+    TOKEN_EOF
 } TokenType;
 
 typedef struct {
@@ -71,7 +75,9 @@ typedef struct {
 
 Token* tokenize(const char* filepath, const char* code);
 void print_token_type(const TokenType tt);
+void fprint_token_type(FILE* stream, const TokenType tt);
 void print_token(const Token token);
+void fprint_token(FILE* stream, const Token token);
 void pretty_print_tokens(const Token* tokens);
 
 #endif // TOKEN_H

@@ -1,8 +1,8 @@
 #include "token.h"
 #include "../vec.h"
+#include "err.h"
 
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,6 +22,7 @@
     do_wide_token('<', TOKEN_LESSER, '=', TOKEN_LESSEREQUALS) \
     do_wide_token('&', TOKEN_BITAND, '&', TOKEN_AND) \
     do_wide_token('|', TOKEN_BITOR, '|', TOKEN_OR) \
+    do_token(':', TOKEN_COLON) \
     do_token(';', TOKEN_SEMICOLON) \
     do_token('(', TOKEN_LPAREN) \
     do_token(')', TOKEN_RPAREN) \
@@ -238,10 +239,7 @@ Token* tokenize(const char* filepath, const char* code) {
             size_t s_col = column;
             size_t s_line = line;
             if (!read_string(&tokens, code, &current, &column, &line)) {
-                if (filepath != NULL)
-                    fprintf(stderr, "[ERROR] Missing terminating \" character at [%s:%zu:%zu]\n", filepath, s_line, s_col);
-                else
-                    fprintf(stderr, "[ERROR] Missing terminating \" character at [%zu:%zu]\n", s_line, s_col);
+                print_err("Missing terminating \" character at %q\n", filepath, s_line, s_col);
                 exit(1);
             }
             continue;
@@ -274,15 +272,14 @@ Token* tokenize(const char* filepath, const char* code) {
                 break;
             CASE_LIST_OF_TOKENS
             default:
-                if (filepath != NULL)
-                    fprintf(stderr, "[ERROR] Unknown character `%c` at [%s:%zu:%zu]\n", c_char, filepath, line, column);
-                else
-                    fprintf(stderr, "[ERROR] Unknown character `%c` at [%zu:%zu]\n", c_char, line, column);
+                print_err("Unknown character `%c` at %q\n", c_char, filepath, line, column);
                 exit(1);
         }
         current++;
         column++;
     }
+
+    make_token(TOKEN_EOF);
     
     return tokens;
 }
@@ -290,37 +287,37 @@ Token* tokenize(const char* filepath, const char* code) {
 #undef do_token
 #define do_token(token, token_type) \
     case (token_type): \
-        printf("%c", token); \
+        fprintf(stream, "%c", token); \
         break;
 
 #undef do_wide_token
 #define do_wide_token(token1, token_type1, token2, token_type2) \
     case (token_type1): \
-        printf("%c", (token1)); \
+        fprintf(stream, "%c", (token1)); \
         break; \
     case (token_type2): \
-        printf("%c%c", (token1), (token2)); \
+        fprintf(stream, "%c%c", (token1), (token2)); \
         break;
 
 #undef RUN_KW
 #define RUN_KW(str, token_type) \
     case (token_type): \
-        printf("%s", (str)); \
+        fprintf(stream, "%s", (str)); \
         break;
 
-void print_token_type(const TokenType tt) {
+void fprint_token_type(FILE* stream, const TokenType tt) {
     switch (tt) {
         case TOKEN_IDENTIFIER:
-            printf("ident");
+            fprintf(stream, "ident");
             break;
         case TOKEN_STRING:
-            printf("string");
+            fprintf(stream, "string");
             break;
         case TOKEN_INTEGER:
-            printf("integer");
+            fprintf(stream, "integer");
             break;
         case TOKEN_DECIMAL:
-            printf("decimal");
+            fprintf(stream, "decimal");
             break;
         do_wide_token('/', TOKEN_SLASH, '=', TOKEN_SLASHEQUALS)
         LIST_OF_KW
@@ -331,22 +328,30 @@ void print_token_type(const TokenType tt) {
     }
 }
 
+void print_token_type(const TokenType tt) {
+    fprint_token_type(stdout, tt);
+}
+
 void dbg_token(const Token token) {
     printf("[%zu:%zu] ", token.start.line, token.start.column);
     print_token_type(token.type);
     printf("\n");
 }
 
-void print_token(const Token token) {
+void fprint_token(FILE* stream, const Token token) {
     if (token.type == TOKEN_IDENTIFIER) {
-        printf("%.*s", (int)token.value.string.length, token.value.string.text);
+        fprintf(stream, "%.*s", (int)token.value.string.length, token.value.string.text);
     } else if (token.type == TOKEN_INTEGER) {
-        printf("%zu", token.value.integer);
+        fprintf(stream, "%zu", token.value.integer);
     } else if (token.type == TOKEN_STRING) {
-        printf("\"%.*s\"", (int)token.value.string.length, token.value.string.text);
-    } else {
-        print_token_type(token.type);
+        fprintf(stream, "\"%.*s\"", (int)token.value.string.length, token.value.string.text);
+    } else if (token.type == TOKEN_EOF) {} else {
+        fprint_token_type(stream, token.type);
     }
+}
+
+void print_token(const Token token) {
+    fprint_token(stdout, token);
 }
 
 void pretty_print_tokens(const Token* tokens) {

@@ -1,4 +1,5 @@
 // #include "objgen/objgen.h"
+#include "lang/err.h"
 #include "lang/token.h"
 #include <stdio.h>
 #include <stdlib.h>

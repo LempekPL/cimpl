@@ -2,3 +2,5 @@ build/
 .clangd
 nob
 prog
+nob.old
+.vscode

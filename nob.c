@@ -10,7 +10,11 @@ bool add_all_files(Nob_Walk_Entry entry) {
         size_t strlength = strlen(entry.path) + 1;
         char* new_name = malloc(strlength);
         if (new_name == NULL) return false;
+        #ifdef _WIN32
         strcpy_s(new_name, strlength, entry.path);
+        #else
+        strcpy(new_name, entry.path);
+        #endif // _WIN32
         nob_cc_inputs(cmd, new_name);
     }
     return true;

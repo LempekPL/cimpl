@@ -29,7 +29,7 @@ typedef struct vec {
 
 #define vec_pop(arr) (arr)[--((Vec*)(arr) - 1)->count]
 
-#define vec_len(arr) ((Vec*)(arr) - 1)->count
+#define vec_len(arr) (((Vec*)(arr)) != NULL ? ((Vec*)(arr) - 1)->count : 0)
 
 #define vec_free(arr) free(((Vec*)arr - 1))
 

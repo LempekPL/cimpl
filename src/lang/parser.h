@@ -40,6 +40,6 @@ typedef struct {
     Item* items;
 } Program;
 
-Program parse(const char* filepath, const char* code, Token* tokens);
+Option parse(const char* filepath, const char* code, Token* tokens);
 
 #endif // PARSER_H

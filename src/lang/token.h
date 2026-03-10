@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "util.h"
 
 typedef enum {
     // token characters
@@ -73,7 +74,7 @@ typedef struct {
     Pos end;
 } Token;
 
-Token* tokenize(const char* filepath, const char* code);
+Option tokenize(const char*, const char*);
 void print_token_type(const TokenType tt);
 void fprint_token_type(FILE* stream, const TokenType tt);
 void print_token(const Token token);

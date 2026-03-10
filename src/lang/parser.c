@@ -1,22 +1,23 @@
 #include "parser.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-Program parse(const char* filepath, const char* code, Token* tokens) {
-    Program program = {0};
+Option parse(const char* filepath, const char* code, Token* tokens) {
+    Option op = {.t = OPTION_None};
+    Program* program = malloc(sizeof(Program));
     size_t current = 0;
-    
+
     while (tokens[current].type != TOKEN_EOF) {
         switch (tokens[current].type) {
             default:
-                // if (filepath != NULL)
-                //     fprintf(stderr, "[ERROR] Wrong token `%c` at [%s:%zu:%zu]\n", , filepath, line, column);
-                // else
-                //     fprintf(stderr, "[ERROR] Wrong token `%c` at [%zu:%zu]\n", c_char, line, column);
+                print_err("Expected token `fn` found `%t` at %q\n", tokens[current], filepath, tokens[current].start.line, tokens[current].start.column);
                 exit(1);
         
         }
     }
 
-    return program;
+    op.t = OPTION_Some;
+    op.data = program;
+    return op;
 }

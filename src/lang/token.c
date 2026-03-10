@@ -1,6 +1,6 @@
 #include "token.h"
 #include "../vec.h"
-#include "err.h"
+#include "util.h"
 
 #include <ctype.h>
 #include <stdlib.h>
@@ -205,7 +205,8 @@ void read_number(Token** tokens, const char* code, size_t* current, size_t* colu
 
 #define wide_case_token(token1, token_type1, token2, token_type2) do_wide_token(token1, token_type1, token2, token_type2)
 
-Token* tokenize(const char* filepath, const char* code) {
+Option tokenize(const char* filepath, const char* code) {
+    Option op = {.t = OPTION_None};
     Token* tokens = NULL;
     size_t line = 1;
     size_t column = 1;
@@ -240,7 +241,7 @@ Token* tokenize(const char* filepath, const char* code) {
             size_t s_line = line;
             if (!read_string(&tokens, code, &current, &column, &line)) {
                 print_err("Missing terminating \" character at %q\n", filepath, s_line, s_col);
-                exit(1);
+                return op;
             }
             continue;
         }
@@ -273,15 +274,17 @@ Token* tokenize(const char* filepath, const char* code) {
             CASE_LIST_OF_TOKENS
             default:
                 print_err("Unknown character `%c` at %q\n", c_char, filepath, line, column);
-                exit(1);
+                return op;
         }
         current++;
         column++;
     }
 
     make_token(TOKEN_EOF);
-    
-    return tokens;
+
+    op.t = OPTION_Some;
+    op.data = tokens;
+    return op;
 }
 
 #undef do_token

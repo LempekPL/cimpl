@@ -3,4 +3,5 @@ build/
 nob
 prog
 nob.old
+nob.exe*
 .vscode

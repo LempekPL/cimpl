@@ -1,6 +1,8 @@
 // #include "objgen/objgen.h"
-#include "lang/err.h"
+#include "lang/parser.h"
+#include "lang/util.h"
 #include "lang/token.h"
+#include "lang/util.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,7 +28,15 @@ int main() {
     char* file = "./main.cimpl";
     char* code = 0;
     read_file(file, &code);
-    Token* tokens = tokenize(file, code);
-    pretty_print_tokens(tokens);
+    Option op_tokens = tokenize(file, code);
+    if (op_tokens.t == OPTION_None) {
+        return 1;
+    }
+    Token* tokens = op_tokens.data;
+    // pretty_print_tokens(tokens);
+    Option op_program = parse(file, code, tokens);
+    if (op_program.t == OPTION_None) {
+        return 1;
+    }
     return 0;
 }

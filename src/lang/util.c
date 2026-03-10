@@ -1,22 +1,9 @@
-#include "err.h"
+#include "util.h"
 #include "token.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
-// void print_err_file(const char* filepath, const char* msg, const Token token) {
-
-// }
-
-void print_err(const char* format, ...) {
-    FILE* stream = stderr;
-
-    va_list args;
-    va_start(args, format);
-    fprintf(stream, "[ERROR] ");
-
-
-
+void fprintf_ext_internal(FILE* const stream, const char* const format, va_list args) {
     for (const char* p = format; *p != '\0'; p++) {
         if (*p != '%') {
             putc(*p, stream);
@@ -41,6 +28,7 @@ void print_err(const char* format, ...) {
                         break;
                     default:
                         fprint_token(stream, token);
+                        putc(*p, stream);
                         break;           
                 }
                 break;
@@ -60,5 +48,28 @@ void print_err(const char* format, ...) {
                 break;
         }
     }
+}
+
+void print_err(const char* format, ...) {
+    FILE* stream = stderr;
+    fprintf(stream, "[ERROR] ");
+    va_list args;
+    va_start(args, format);
+    fprintf_ext_internal(stream, format, args);
+    va_end(args);
+}
+
+void print_ext(const char* format, ...) {
+    FILE* stream = stdout;
+    va_list args;
+    va_start(args, format);
+    fprintf_ext_internal(stream, format, args);
+    va_end(args);
+}
+
+void fprint_ext(FILE* const stream, const char* const format, ...) {
+    va_list args;
+    va_start(args, format);
+    fprintf_ext_internal(stream, format, args);
     va_end(args);
 }

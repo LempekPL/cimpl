@@ -253,6 +253,7 @@ Option tokenize(const char* filepath, const char* code) {
                     current++;
                 } else if (code[current+1] == '/') {
                     while (code[current++] != '\n') {}
+                    current--;
                     line++;
                     column = 1;
                 } else if (code[current+1] == '*') {

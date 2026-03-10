@@ -4,13 +4,22 @@
 
 typedef enum {
     EXPR_LITERAL_INTEGER,
+    EXPR_IDENTIFIER,
     EXPR_BINOP
 } ExprType;
 
 typedef struct {
+    Token op;
+    struct expr_t* left;
+    struct expr_t* right;
+} ExprBinOp;
+
+typedef struct expr_t {
     ExprType type;
     union {
         size_t integer;
+        ExprBinOp binop;
+        char* ident;
     } value;
 } Expr;
 

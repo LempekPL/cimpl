@@ -11,7 +11,7 @@ void fprintf_ext_internal(FILE* const stream, const char* const format, va_list 
         }
         p++;
         switch (*p) {
-            case 'y':
+            case 'y': {
                 const char* filename = va_arg(args, const char*);
                 size_t line = va_arg(args, size_t);
                 size_t column = va_arg(args, size_t);
@@ -19,36 +19,43 @@ void fprintf_ext_internal(FILE* const stream, const char* const format, va_list 
                 if (filename != NULL && strlen(filename) > 0) fprintf(stream, "%s:", filename);
                 fprintf(stream, "%zu:%zu]", line, column);
                 break;
+            }
             case 't':
                 p++;
                 switch (*p) {
-                    case 'r':
+                    case 'r': {
                         TokenType type = va_arg(args, TokenType);
                         fprint_token_type(stream, type);
-                        break;
-                    case 't':
+                        break; 
+                    }
+                    case 't': {
                         Token token1 = va_arg(args, Token);
                         fprint_token_type(stream, token1.type);
                         break;
-                    default:
+                    }
+                    default: {
                         Token token2 = va_arg(args, Token);
                         fprint_token(stream, token2);
                         putc(*p, stream);
-                        break;           
+                        break;
+                    }           
                 }
                 break;
-            case 'd':
+            case 'd': {
                 int d = va_arg(args, int);
                 fprintf(stream, "%d", d);
                 break;
-            case 'c':
+            }
+            case 'c': {
                 char c = va_arg(args, int);
                 putc(c, stream);
                 break;
-            case 's':
+            }
+            case 's': {
                 const char* str = va_arg(args, const char*);
                 fprintf(stream, "%s", str);
                 break;
+            }
             case '%':
                 fprintf(stream, "%%");
                 break;

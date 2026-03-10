@@ -33,22 +33,82 @@ char* take_ident(ProgramParseData* ppd) {
         exit(1);
     }
     size_t len = current_ppd.value.string.length;
-    char* name = malloc(sizeof(char) * len+1);
-    strncpy(name, current_ppd.value.string.text, len);
+    char* name = malloc(len + 1);
+    memcpy(name, current_ppd.value.string.text, len);
     name[len] = '\0';
     inc_ppd;
     return name;
 }
 
-bool parse_expr(ProgramParseData* ppd, Expr* expr) {
-    if (current_ppd.type != TOKEN_INTEGER) {
-        print_err("Expected integer found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
-        return false;
+int get_infix_bp(TokenType type) {
+    switch (type) {
+        case TOKEN_PLUS:
+        case TOKEN_MINUS:
+            return 10;
+        case TOKEN_STAR:
+        case TOKEN_SLASH:
+            return 20;
+        default:
+            return 0;
     }
-    expr->type = EXPR_LITERAL_INTEGER;
-    expr->value.integer = current_ppd.value.integer;
-    inc_ppd;
+}
+
+Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
+    Expr* left = malloc(sizeof(Expr));
+    if (current_ppd.type == TOKEN_INTEGER) {
+        left->type = EXPR_LITERAL_INTEGER;
+        printf("AAAA: %zu\n", current_ppd.value.integer);
+        left->value.integer = current_ppd.value.integer;
+        inc_ppd;
+    } else if (current_ppd.type == TOKEN_IDENTIFIER) {
+        left->type = EXPR_IDENTIFIER;
+        left->value.ident = take_ident(ppd);
+    } else if (current_ppd.type == TOKEN_LPAREN) {
+        inc_ppd;
+        left = parse_expr_bp(ppd, 0); 
+        if (!consume_token(ppd, TOKEN_RPAREN)) exit(1);
+    }
+    else {
+        print_err("Expected expression found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
+        free(left);
+        exit(1);
+    }
+
+    while (true) {
+        Token op = current_ppd;
+        int bp = get_infix_bp(op.type);
+        if (bp == 0 || bp < min_bp) {
+            break;
+        }
+        inc_ppd;
+        Expr* right = parse_expr_bp(ppd, bp + 1);
+        Expr* new_left = malloc(sizeof(Expr));
+        new_left->type = EXPR_BINOP;
+        new_left->value.binop.left = left;
+        new_left->value.binop.op = op;
+        new_left->value.binop.right = right;
+
+        left = new_left;
+    }
+
+    return left;
+}
+
+bool parse_expr(ProgramParseData* ppd, Expr* expr) {
+    expr = parse_expr_bp(ppd, 0);
+    if (expr->type == EXPR_LITERAL_INTEGER) {
+        printf("BBB: %zu\n", expr->value.integer);
+    }
     return true;
+
+    // if (current_ppd.type != TOKEN_INTEGER) {
+    //     print_err("Expected integer found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
+    //     return false;
+    // }
+    // expr->type = EXPR_LITERAL_INTEGER;
+    // expr->value.integer = current_ppd.value.integer;
+    // inc_ppd;
+    // return true;
 }
 
 bool parse_stms_let(ProgramParseData* ppd, Stmt* stmt) {
@@ -72,11 +132,12 @@ bool parse_stmts(ProgramParseData* ppd, Stmt** stmts) {
     while (current_ppd.type != TOKEN_RBRACE) {
         switch (current_ppd.type) {
             case TOKEN_EOF: return false;
-            case TOKEN_KW_LET:
+            case TOKEN_KW_LET: {
                 Stmt stmt;
                 if (!parse_stms_let(ppd, &stmt)) return false;
                 vec_push(*stmts, stmt);
                 break;
+            }
             default:
                 print_err("Expected statement found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
                 return false;
@@ -131,16 +192,53 @@ Option parse(const char* filepath, const char* code, const Token* tokens) {
     return op;
 }
 
-void print_expr(Expr expr) {
-    if (expr.type == EXPR_LITERAL_INTEGER) {
-        printf("\t%zu\n", expr.value.integer);
+void print_indent(int level) {
+    for (int i = 0; i < level; i++) {
+        printf("  ");
+    }
+}
+
+void print_expr(Expr* expr, int indent) {
+    if (expr == NULL) return;
+
+    print_indent(indent);
+
+    switch (expr->type) {
+        case EXPR_LITERAL_INTEGER:
+            printf("Integer: %zu\n", expr->value.integer);
+            break;
+            
+        case EXPR_IDENTIFIER:
+            printf("Identifier: %s\n", expr->value.ident);
+            break;
+            
+        case EXPR_BINOP: {
+            // Wypisujemy sam węzeł operatora
+            printf("BinaryOp: ");
+            // Używamy makra/funkcji do wypisania samego znaku (np. '+', '*')
+            // Zależnie od tego, jak masz to teraz nazwane w swoim kodzie, np:
+            char buf[64];
+            sprint_token(buf, expr->value.binop.op);
+            printf("%s\n", buf);
+
+            // Rekurencyjnie wypisujemy lewą i prawą stronę, zwiększając wcięcie!
+            print_indent(indent + 1);
+            printf("Left:\n");
+            print_expr(expr->value.binop.left, indent + 2);
+
+            print_indent(indent + 1);
+            printf("Right:\n");
+            print_expr(expr->value.binop.right, indent + 2);
+            break;
+        }
     }
 }
 
 void print_stmt(Stmt stmt) {
     if (stmt.type == STMT_DECLARE) {
         printf("\tDECLARATION\n\tVariable Name: %s\n\tExpr:\n", stmt.value.decl.name);
-        print_expr(stmt.value.decl.expr);
+        print_expr(&stmt.value.decl.expr, 2);
+        printf("\n");
     }
 }
 

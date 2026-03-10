@@ -11,7 +11,7 @@ void fprintf_ext_internal(FILE* const stream, const char* const format, va_list 
         }
         p++;
         switch (*p) {
-            case 'q':
+            case 'y':
                 const char* filename = va_arg(args, const char*);
                 size_t line = va_arg(args, size_t);
                 size_t column = va_arg(args, size_t);
@@ -36,6 +36,10 @@ void fprintf_ext_internal(FILE* const stream, const char* const format, va_list 
                         putc(*p, stream);
                         break;           
                 }
+                break;
+            case 'd':
+                int d = va_arg(args, int);
+                fprintf(stream, "%d", d);
                 break;
             case 'c':
                 char c = va_arg(args, int);

@@ -1,9 +1,14 @@
 fn main() {
     let a = 0x10;
-    let b = read();
-    // testing
-    if a >= 18 && b == 10 {
-        a /= 10;
-        print("test BC");
-    }
+    let b = 10;
+    //let b = read();
+    //// testing
+    //if a >= 18 && b == 10 {
+    //    a /= 10;
+    //    print("test BC");
+    //}
+}
+
+fn test() {
+    //let abe = 10;
 }

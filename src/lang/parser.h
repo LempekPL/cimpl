@@ -3,14 +3,31 @@
 #include "token.h"
 
 typedef enum {
-    STMT_FUNC,
-    STMT_CONST
+    EXPR_LITERAL_INTEGER,
+    EXPR_BINOP
+} ExprType;
+
+typedef struct {
+    ExprType type;
+    union {
+        size_t integer;
+    } value;
+} Expr;
+
+typedef enum {
+    STMT_DECLARE,
+    STMT_ASSIGN
 } StmtType;
+
+typedef struct {
+    char* name;
+    Expr expr;
+} StmtDecl;
 
 typedef struct {
     StmtType type;
     union {
-
+        StmtDecl decl;
     } value;
 } Stmt;
 
@@ -40,6 +57,8 @@ typedef struct {
     Item* items;
 } Program;
 
-Option parse(const char* filepath, const char* code, Token* tokens);
+Option parse(const char* filepath, const char* code, const Token* tokens);
+
+void print_program(Program* prog);
 
 #endif // PARSER_H

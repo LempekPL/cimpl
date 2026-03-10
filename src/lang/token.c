@@ -240,7 +240,7 @@ Option tokenize(const char* filepath, const char* code) {
             size_t s_col = column;
             size_t s_line = line;
             if (!read_string(&tokens, code, &current, &column, &line)) {
-                print_err("Missing terminating \" character at %q\n", filepath, s_line, s_col);
+                print_err("Missing terminating \" character at %y\n", filepath, s_line, s_col);
                 return op;
             }
             continue;
@@ -274,7 +274,7 @@ Option tokenize(const char* filepath, const char* code) {
                 break;
             CASE_LIST_OF_TOKENS
             default:
-                print_err("Unknown character `%c` at %q\n", c_char, filepath, line, column);
+                print_err("Unknown character `%c` at %y\n", c_char, filepath, line, column);
                 return op;
         }
         current++;

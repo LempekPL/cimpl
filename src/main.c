@@ -33,10 +33,12 @@ int main() {
         return 1;
     }
     Token* tokens = op_tokens.data;
-    // pretty_print_tokens(tokens);
+    pretty_print_tokens(tokens);
     Option op_program = parse(file, code, tokens);
     if (op_program.t == OPTION_None) {
         return 1;
     }
+    Program* program = op_program.data;
+    print_program(program);
     return 0;
 }

@@ -77,8 +77,10 @@ typedef struct {
 Option tokenize(const char*, const char*);
 void print_token_type(const TokenType tt);
 void fprint_token_type(FILE* stream, const TokenType tt);
+void sprint_token_type(char* buffer, const TokenType tt);
 void print_token(const Token token);
 void fprint_token(FILE* stream, const Token token);
+void sprint_token(char* buffer, const Token token);
 void pretty_print_tokens(const Token* tokens);
 
 #endif // TOKEN_H

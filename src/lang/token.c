@@ -252,7 +252,7 @@ Option tokenize(const char* filepath, const char* code) {
                     make_token_wide(TOKEN_SLASHEQUALS);
                     current++;
                 } else if (code[current+1] == '/') {
-                    while (code[current++] != '\n') {}
+                    while (code[current++] != '\n' && code[current++] != '\0') {}
                     current--;
                     line++;
                     column = 1;
@@ -327,7 +327,51 @@ void fprint_token_type(FILE* stream, const TokenType tt) {
         LIST_OF_KW
         CASE_LIST_OF_TOKENS
         default:
-            printf("unknown");
+            fprintf(stream, "unknown");
+            break;
+    }
+}
+
+#undef do_token
+#define do_token(token, token_type) \
+    case (token_type): \
+        sprintf(buffer, "%c", token); \
+        break;
+
+#undef do_wide_token
+#define do_wide_token(token1, token_type1, token2, token_type2) \
+    case (token_type1): \
+        sprintf(buffer, "%c", (token1)); \
+        break; \
+    case (token_type2): \
+        sprintf(buffer, "%c%c", (token1), (token2)); \
+        break;
+
+#undef RUN_KW
+#define RUN_KW(str, token_type) \
+    case (token_type): \
+        sprintf(buffer, "%s", (str)); \
+        break;
+
+void sprint_token_type(char* buffer, const TokenType tt) {
+    switch (tt) {
+        case TOKEN_IDENTIFIER:
+            sprintf(buffer, "ident");
+            break;
+        case TOKEN_STRING:
+            sprintf(buffer, "string");
+            break;
+        case TOKEN_INTEGER:
+            sprintf(buffer, "integer");
+            break;
+        case TOKEN_DECIMAL:
+            sprintf(buffer, "decimal");
+            break;
+        do_wide_token('/', TOKEN_SLASH, '=', TOKEN_SLASHEQUALS)
+        LIST_OF_KW
+        CASE_LIST_OF_TOKENS
+        default:
+            sprintf(buffer, "unknown");
             break;
     }
 }
@@ -351,6 +395,18 @@ void fprint_token(FILE* stream, const Token token) {
         fprintf(stream, "\"%.*s\"", (int)token.value.string.length, token.value.string.text);
     } else if (token.type == TOKEN_EOF) {} else {
         fprint_token_type(stream, token.type);
+    }
+}
+
+void sprint_token(char* buffer, const Token token) {
+    if (token.type == TOKEN_IDENTIFIER) {
+        sprintf(buffer, "%.*s", (int)token.value.string.length, token.value.string.text);
+    } else if (token.type == TOKEN_INTEGER) {
+        sprintf(buffer, "%zu", token.value.integer);
+    } else if (token.type == TOKEN_STRING) {
+        sprintf(buffer, "\"%.*s\"", (int)token.value.string.length, token.value.string.text);
+    } else if (token.type == TOKEN_EOF) {} else {
+        sprint_token_type(buffer, token.type);
     }
 }
 

@@ -21,13 +21,18 @@ void fprintf_ext_internal(FILE* const stream, const char* const format, va_list 
                 break;
             case 't':
                 p++;
-                Token token = va_arg(args, Token);
                 switch (*p) {
+                    case 'r':
+                        TokenType type = va_arg(args, TokenType);
+                        fprint_token_type(stream, type);
+                        break;
                     case 't':
-                        fprint_token_type(stream, token.type);
+                        Token token1 = va_arg(args, Token);
+                        fprint_token_type(stream, token1.type);
                         break;
                     default:
-                        fprint_token(stream, token);
+                        Token token2 = va_arg(args, Token);
+                        fprint_token(stream, token2);
                         putc(*p, stream);
                         break;           
                 }

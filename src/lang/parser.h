@@ -32,7 +32,8 @@ typedef struct expr_t {
 
 typedef enum {
     STMT_DECLARE,
-    STMT_ASSIGN
+    STMT_ASSIGN,
+    STMT_CALL,
 } StmtType;
 
 typedef struct {
@@ -41,9 +42,21 @@ typedef struct {
 } StmtDecl;
 
 typedef struct {
+    char* name;
+    Token type;
+    Expr* expr;
+} StmtAss;
+
+typedef struct {
+    char* name;
+} StmtCall;
+
+typedef struct {
     StmtType type;
     union {
         StmtDecl decl;
+        StmtAss ass;
+        StmtCall call;
     } value;
 } Stmt;
 

@@ -103,18 +103,9 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
 bool parse_expr(ProgramParseData* ppd, Expr** expr) {
     *expr = parse_expr_bp(ppd, 0);
     return true;
-
-    // if (current_ppd.type != TOKEN_INTEGER) {
-    //     print_err("Expected integer found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
-    //     return false;
-    // }
-    // expr->type = EXPR_LITERAL_INTEGER;
-    // expr->value.integer = current_ppd.value.integer;
-    // inc_ppd;
-    // return true;
 }
 
-bool parse_stms_let(ProgramParseData* ppd, Stmt* stmt) {
+bool parse_stmt_decl(ProgramParseData* ppd, Stmt* stmt) {
     // let ident = expr;
     inc_ppd;
     stmt->type = STMT_DECLARE;
@@ -127,24 +118,65 @@ bool parse_stms_let(ProgramParseData* ppd, Stmt* stmt) {
     return true;
 }
 
+bool parse_stmt_call(ProgramParseData* ppd, Stmt* stmt) {
+    // ident(expr1, expr2);
+    stmt->type = STMT_CALL;
+    stmt->value.call.name = take_ident(ppd);
+    if (!consume_token(ppd, TOKEN_LPAREN)) return false;
+    // TODO: function args
+    if (!consume_token(ppd, TOKEN_RPAREN)) return false;
+    if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
+    return true;
+}
+
+bool parse_stmt_ass(ProgramParseData* ppd, Stmt* stmt) {
+    // ident +-*/= expr;
+    stmt->type = STMT_ASSIGN;
+    stmt->value.ass.name = take_ident(ppd);
+    switch (current_ppd.type) {
+        case TOKEN_EQUALS:
+        case TOKEN_PLUSEQUALS:
+        case TOKEN_MINUSEQUALS:
+        case TOKEN_STAREQUALS:
+        case TOKEN_SLASHEQUALS:
+        case TOKEN_PERCENTEQUALS:
+            stmt->value.ass.type = current_ppd;
+            break;
+        default:
+            print_err("Expected `=` found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
+    }
+    inc_ppd;
+    Expr* expr = malloc(sizeof(Expr));
+    parse_expr(ppd, &expr);
+    stmt->value.ass.expr = expr;
+    if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
+    return true;
+}
+
 bool parse_stmts(ProgramParseData* ppd, Stmt** stmts) {
     // 1. let ident = expr; // declaration
     // 2. ident = expr; // assign
     // 3. ident() // call
     // 4. if expr { stmt; stmt; }
     while (current_ppd.type != TOKEN_RBRACE) {
+        Stmt stmt = {0};
         switch (current_ppd.type) {
             case TOKEN_EOF: return false;
-            case TOKEN_KW_LET: {
-                Stmt stmt = {0};
-                if (!parse_stms_let(ppd, &stmt)) return false;
-                vec_push(*stmts, stmt);
+            case TOKEN_KW_LET: 
+                if (!parse_stmt_decl(ppd, &stmt)) return false;
                 break;
-            }
+            case TOKEN_IDENTIFIER:
+                if (next_ppd.type == TOKEN_LPAREN) {
+                    if (!parse_stmt_call(ppd, &stmt)) return false;
+                } else {
+                    if (!parse_stmt_ass(ppd, &stmt)) return false;
+                }
+                break;
             default:
                 print_err("Expected statement found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
                 return false;
         }
+        vec_push(*stmts, stmt);
     }
     return true;
 }
@@ -162,6 +194,7 @@ bool parse_item_fn(ProgramParseData* ppd, Program* program) {
     if (!consume_token(ppd, TOKEN_LBRACE)) return false;
     fun.value.fn.stmts = NULL;
     if (!parse_stmts(ppd, &fun.value.fn.stmts)) return false;
+    printf("%zu\n\n", vec_len(fun.value.fn.stmts));
     if (!consume_token(ppd, TOKEN_RBRACE)) return false;
     vec_push(program->items, fun);
     return true;
@@ -238,10 +271,23 @@ void print_expr(Expr* expr, int indent) {
 }
 
 void print_stmt(Stmt stmt) {
-    if (stmt.type == STMT_DECLARE) {
-        printf("\tDECLARATION\n\tVariable Name: %s\n\tExpr:\n", stmt.value.decl.name);
-        print_expr(stmt.value.decl.expr, 2);
-        printf("\n");
+    switch (stmt.type) {
+        case STMT_DECLARE:
+            printf("\tDECLARATION\n\tVariable Name: %s\n\tExpr:\n", stmt.value.decl.name);
+            print_expr(stmt.value.decl.expr, 2);
+            printf("\n");
+            break;
+        case STMT_ASSIGN:
+            printf("\tASSIGN\n\tVariable Name: %s\n\tType: `", stmt.value.ass.name);
+            print_token(stmt.value.ass.type);
+            printf("`\n");
+            print_expr(stmt.value.ass.expr, 2);
+            printf("\n");
+            break;
+        case STMT_CALL:
+            printf("\tCALL\n\tFunction Name: %s\n", stmt.value.call.name);
+            printf("\n");
+            break;
     }
 }
 

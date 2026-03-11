@@ -252,7 +252,7 @@ Option tokenize(const char* filepath, const char* code) {
                     make_token_wide(TOKEN_SLASHEQUALS);
                     current++;
                 } else if (code[current+1] == '/') {
-                    while (code[current++] != '\n' && code[current++] != '\0') {}
+                    while (code[current] != '\n' && code[current] != '\0') current++;
                     current--;
                     line++;
                     column = 1;

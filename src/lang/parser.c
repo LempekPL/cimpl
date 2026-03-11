@@ -43,12 +43,22 @@ char* take_ident(ProgramParseData* ppd) {
 
 int get_infix_bp(TokenType type) {
     switch (type) {
+        case TOKEN_AND:
+        case TOKEN_OR:
+            return 10;
+        case TOKEN_EQUALSEQUALS:
+        case TOKEN_GREATER:
+        case TOKEN_GREATEREQUALS:
+        case TOKEN_LESSER:
+        case TOKEN_LESSEREQUALS:
+            return 20;
         case TOKEN_PLUS:
         case TOKEN_MINUS:
-            return 10;
+            return 30;
         case TOKEN_STAR:
         case TOKEN_SLASH:
-            return 20;
+        case TOKEN_PERCENT:
+            return 40;
         default:
             return 0;
     }
@@ -153,6 +163,22 @@ bool parse_stmt_ass(ProgramParseData* ppd, Stmt* stmt) {
     return true;
 }
 
+bool parse_stmts(ProgramParseData* ppd, Stmt** stmts);
+
+bool parse_stmt_if(ProgramParseData* ppd, Stmt* stmt) {
+    // if expr { stmt; stmt; }
+    stmt->type = STMT_IF;
+    inc_ppd;
+    Expr* expr = malloc(sizeof(Expr));
+    parse_expr(ppd, &expr);
+    stmt->value.ifs.expr = expr;
+    if (!consume_token(ppd, TOKEN_LBRACE)) return false;
+    stmt->value.ifs.stmts = NULL;
+    parse_stmts(ppd, &stmt->value.ifs.stmts);
+    if (!consume_token(ppd, TOKEN_RBRACE)) return false;
+    return true;
+}
+
 bool parse_stmts(ProgramParseData* ppd, Stmt** stmts) {
     // 1. let ident = expr; // declaration
     // 2. ident = expr; // assign
@@ -171,6 +197,9 @@ bool parse_stmts(ProgramParseData* ppd, Stmt** stmts) {
                 } else {
                     if (!parse_stmt_ass(ppd, &stmt)) return false;
                 }
+                break;
+            case TOKEN_KW_IF:
+                if (!parse_stmt_if(ppd, &stmt)) return false;
                 break;
             default:
                 print_err("Expected statement found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
@@ -287,6 +316,10 @@ void print_stmt(Stmt stmt) {
         case STMT_CALL:
             printf("\tCALL\n\tFunction Name: %s\n", stmt.value.call.name);
             printf("\n");
+            break;
+        case STMT_IF:
+            printf("\tIF\n\n");
+            print_expr(stmt.value.ifs.expr, 2);
             break;
     }
 }

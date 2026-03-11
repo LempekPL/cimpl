@@ -34,6 +34,7 @@ typedef enum {
     STMT_DECLARE,
     STMT_ASSIGN,
     STMT_CALL,
+    STMT_IF
 } StmtType;
 
 typedef struct {
@@ -52,11 +53,17 @@ typedef struct {
 } StmtCall;
 
 typedef struct {
+    Expr* expr;
+    struct stmt* stmts;
+} StmtIf;
+
+typedef struct stmt {
     StmtType type;
     union {
         StmtDecl decl;
         StmtAss ass;
         StmtCall call;
+        StmtIf ifs;
     } value;
 } Stmt;
 

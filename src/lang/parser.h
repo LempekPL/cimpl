@@ -5,8 +5,14 @@
 typedef enum {
     EXPR_LITERAL_INTEGER,
     EXPR_IDENTIFIER,
-    EXPR_BINOP
+    EXPR_BINOP,
+    EXPR_CALL
 } ExprType;
+
+typedef struct {
+    char* name;
+    // TODO: args
+} ExprCall;
 
 typedef struct {
     Token op;
@@ -20,6 +26,7 @@ typedef struct expr_t {
         size_t integer;
         ExprBinOp binop;
         char* ident;
+        ExprCall call;
     } value;
 } Expr;
 
@@ -30,7 +37,7 @@ typedef enum {
 
 typedef struct {
     char* name;
-    Expr expr;
+    Expr* expr;
 } StmtDecl;
 
 typedef struct {

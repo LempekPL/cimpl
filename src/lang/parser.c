@@ -9,6 +9,7 @@
 #define inc_ppd (*ppd->current)++
 #define dec_ppd (*ppd->current)--
 #define current_ppd ppd->tokens[*ppd->current]
+#define next_ppd ppd->tokens[*ppd->current + 1]
 #define ppd_printable(token) ppd->filepath, token.start.line, token.start.column
 
 typedef struct {
@@ -57,10 +58,15 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
     Expr* left = malloc(sizeof(Expr));
     if (current_ppd.type == TOKEN_INTEGER) {
         left->type = EXPR_LITERAL_INTEGER;
-        printf("AAAA: %zu\n", current_ppd.value.integer);
         left->value.integer = current_ppd.value.integer;
         inc_ppd;
-    } else if (current_ppd.type == TOKEN_IDENTIFIER) {
+    } else if (current_ppd.type == TOKEN_IDENTIFIER && next_ppd.type == TOKEN_LPAREN) {
+        left->type = EXPR_CALL;
+        left->value.ident = take_ident(ppd);
+        if (!consume_token(ppd, TOKEN_LPAREN)) return false;
+        // TODO: function args
+        if (!consume_token(ppd, TOKEN_RPAREN)) return false;
+    }  else if (current_ppd.type == TOKEN_IDENTIFIER) {
         left->type = EXPR_IDENTIFIER;
         left->value.ident = take_ident(ppd);
     } else if (current_ppd.type == TOKEN_LPAREN) {
@@ -94,11 +100,8 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
     return left;
 }
 
-bool parse_expr(ProgramParseData* ppd, Expr* expr) {
-    expr = parse_expr_bp(ppd, 0);
-    if (expr->type == EXPR_LITERAL_INTEGER) {
-        printf("BBB: %zu\n", expr->value.integer);
-    }
+bool parse_expr(ProgramParseData* ppd, Expr** expr) {
+    *expr = parse_expr_bp(ppd, 0);
     return true;
 
     // if (current_ppd.type != TOKEN_INTEGER) {
@@ -117,7 +120,7 @@ bool parse_stms_let(ProgramParseData* ppd, Stmt* stmt) {
     stmt->type = STMT_DECLARE;
     stmt->value.decl.name = take_ident(ppd);
     if (!consume_token(ppd, TOKEN_EQUALS)) return false;
-    Expr expr;
+    Expr* expr = malloc(sizeof(Expr));
     parse_expr(ppd, &expr);
     stmt->value.decl.expr = expr;
     if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
@@ -133,7 +136,7 @@ bool parse_stmts(ProgramParseData* ppd, Stmt** stmts) {
         switch (current_ppd.type) {
             case TOKEN_EOF: return false;
             case TOKEN_KW_LET: {
-                Stmt stmt;
+                Stmt stmt = {0};
                 if (!parse_stms_let(ppd, &stmt)) return false;
                 vec_push(*stmts, stmt);
                 break;
@@ -212,16 +215,16 @@ void print_expr(Expr* expr, int indent) {
             printf("Identifier: %s\n", expr->value.ident);
             break;
             
+        case EXPR_CALL:
+            printf("Call: %s()\n", expr->value.call.name);
+            break;
+            
         case EXPR_BINOP: {
-            // Wypisujemy sam węzeł operatora
             printf("BinaryOp: ");
-            // Używamy makra/funkcji do wypisania samego znaku (np. '+', '*')
-            // Zależnie od tego, jak masz to teraz nazwane w swoim kodzie, np:
             char buf[64];
             sprint_token(buf, expr->value.binop.op);
             printf("%s\n", buf);
 
-            // Rekurencyjnie wypisujemy lewą i prawą stronę, zwiększając wcięcie!
             print_indent(indent + 1);
             printf("Left:\n");
             print_expr(expr->value.binop.left, indent + 2);
@@ -237,7 +240,7 @@ void print_expr(Expr* expr, int indent) {
 void print_stmt(Stmt stmt) {
     if (stmt.type == STMT_DECLARE) {
         printf("\tDECLARATION\n\tVariable Name: %s\n\tExpr:\n", stmt.value.decl.name);
-        print_expr(&stmt.value.decl.expr, 2);
+        print_expr(stmt.value.decl.expr, 2);
         printf("\n");
     }
 }

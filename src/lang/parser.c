@@ -257,13 +257,13 @@ Option parse(const char* filepath, const char* code, const Token* tokens) {
     return op;
 }
 
-void print_indent(int level) {
-    for (int i = 0; i < level; i++) {
+void print_indent(size_t level) {
+    for (size_t i = 0; i < level; i++) {
         printf("  ");
     }
 }
 
-void print_expr(Expr* expr, int indent) {
+void print_expr(Expr* expr, size_t indent) {
     if (expr == NULL) return;
 
     print_indent(indent);
@@ -299,18 +299,18 @@ void print_expr(Expr* expr, int indent) {
     }
 }
 
-void print_stmt(Stmt stmt) {
+void print_stmt(Stmt stmt, size_t indent) {
     switch (stmt.type) {
         case STMT_DECLARE:
             printf("\tDECLARATION\n\tVariable Name: %s\n\tExpr:\n", stmt.value.decl.name);
-            print_expr(stmt.value.decl.expr, 2);
+            print_expr(stmt.value.decl.expr, indent);
             printf("\n");
             break;
         case STMT_ASSIGN:
             printf("\tASSIGN\n\tVariable Name: %s\n\tType: `", stmt.value.ass.name);
             print_token(stmt.value.ass.type);
             printf("`\n");
-            print_expr(stmt.value.ass.expr, 2);
+            print_expr(stmt.value.ass.expr, indent);
             printf("\n");
             break;
         case STMT_CALL:
@@ -318,8 +318,14 @@ void print_stmt(Stmt stmt) {
             printf("\n");
             break;
         case STMT_IF:
-            printf("\tIF\n\n");
-            print_expr(stmt.value.ifs.expr, 2);
+            printf("\tIF\n\tExpr:\n");
+            print_expr(stmt.value.ifs.expr, indent);
+            printf("\tStmts:\n");
+            for (size_t i = 0; i < vec_len(stmt.value.ifs.stmts); i++) {
+                print_indent(indent+2);
+                printf("%zu.", i+1);
+                print_stmt(stmt.value.ifs.stmts[i], indent+2);
+            }
             break;
     }
 }
@@ -329,7 +335,7 @@ void print_item(Item item) {
         printf("FUNCTION\n Name: %s\n Stmts:\n", item.value.fn.name);
         for (size_t i = 0; i < vec_len(item.value.fn.stmts); i++) {
             printf("%zu.", i+1);
-            print_stmt(item.value.fn.stmts[i]);
+            print_stmt(item.value.fn.stmts[i], 2);
         }
     }
 }

@@ -20,16 +20,22 @@ bool add_all_files(Nob_Walk_Entry entry) {
     return true;
 }
 
+typedef struct {
+    bool debug;
+    char* runner;
+} Args;
+
 int main(int argc, char** argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
-
-    bool debug = false;
-    bool gdb = false;
-    bool gf = false;
-    if (argc > 1) {
-        gdb = strcmp(argv[1], "gdb") == 0;
-        gf = strcmp(argv[1], "gf") == 0;
-        debug = gdb || gf || strcmp(argv[1], "debug") == 0;
+    
+    Args args = {0};
+    for (size_t i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
+            args.debug = true;
+        } else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--runWith") == 0) {
+            i++;
+            args.runner = argv[i];
+        }
     }
 
     if (!nob_mkdir_if_not_exists(BUILD_FOLDER)) return 1;
@@ -38,14 +44,13 @@ int main(int argc, char** argv) {
 
     nob_cc(&cmd);
     nob_cc_flags(&cmd);
-    if (debug) nob_cmd_append(&cmd, "-g");
+    if (args.debug) nob_cmd_append(&cmd, "-g");
     nob_cc_output(&cmd, BUILD_FOLDER "cimpl");
 
     if (!nob_walk_dir("src", add_all_files, &cmd)) return 1;
     if (!nob_cmd_run(&cmd)) return 1;
 
-    if (gdb) nob_cmd_append(&cmd, "gdb");
-    if (gf) nob_cmd_append(&cmd, "gf2");
+    if (strlen(args.runner) > 0) nob_cmd_append(&cmd, args.runner);
     nob_cmd_append(&cmd, BUILD_FOLDER"cimpl");
     if (!nob_cmd_run(&cmd)) return 1;
 

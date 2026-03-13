@@ -1,6 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
+
 #include "token.h"
+#include "../dropper.h"
 
 typedef enum {
     EXPR_LITERAL_INTEGER,
@@ -93,7 +95,7 @@ typedef struct {
     Item* items;
 } Program;
 
-Option parse(const char* filepath, const char* code, const Token* tokens);
+Option parse(const char* filepath, const char* code, const Token* tokens, Drop** drops);
 
 void print_program(Program* prog);
 

@@ -12,6 +12,6 @@ fn main() {
     }
 }
 
-//fn test() {
-//    let abe = 11;
-//}
+fn test() {
+    let abe = 11;
+}

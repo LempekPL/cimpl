@@ -205,8 +205,13 @@ void read_number(Token** tokens, const char* code, size_t* current, size_t* colu
 
 #define wide_case_token(token1, token_type1, token2, token_type2) do_wide_token(token1, token_type1, token2, token_type2)
 
+void token_cleanup(Token** tokens) {
+    vec_free(*tokens);
+}
+
 Option tokenize(const char* filepath, const char* code) {
     Option op = {.t = OPTION_None};
+    __attribute__((cleanup(token_cleanup))) 
     Token* tokens = NULL;
     size_t line = 1;
     size_t column = 1;
@@ -283,8 +288,10 @@ Option tokenize(const char* filepath, const char* code) {
 
     make_token(TOKEN_EOF);
 
+    Token* take = tokens;
+    tokens = NULL;
     op.t = OPTION_Some;
-    op.data = tokens;
+    op.data = take;
     return op;
 }
 
@@ -417,6 +424,7 @@ void print_token(const Token token) {
 void pretty_print_tokens(const Token* tokens) {
     size_t tab_count = 0;
     for (size_t i = 0; i < vec_len(tokens); i++) {
+        if (tokens[i].type == TOKEN_EOF) break;
         if (tokens[i].type == TOKEN_RBRACE) tab_count--;
         if (tokens[i].type == TOKEN_LBRACE) tab_count++;
         print_token(tokens[i]);

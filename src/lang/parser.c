@@ -1,22 +1,24 @@
-#include "parser.h"
-#include "token.h"
-#include "../vec.h"
-#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "parser.h"
+#include "../vec.h"
+#include "util.h"
 
 #define inc_ppd (*ppd->current)++
 #define dec_ppd (*ppd->current)--
 #define current_ppd ppd->tokens[*ppd->current]
 #define next_ppd ppd->tokens[*ppd->current + 1]
 #define ppd_printable(token) ppd->filepath, token.start.line, token.start.column
+#define ppd_free(x) do { drop_free(*ppd->drops, (x)); } while (0)
+#define ppd_malloc(name, type, size) type* name = malloc(sizeof(type)*size); ppd_free(name);
 
 typedef struct {
     const char* filepath;
     const char* code;
     const Token* tokens;
     size_t* current;
+    Drop** drops;
 } ProgramParseData;
 
 bool consume_token(ProgramParseData* ppd, TokenType tt) {
@@ -34,7 +36,7 @@ char* take_ident(ProgramParseData* ppd) {
         exit(1);
     }
     size_t len = current_ppd.value.string.length;
-    char* name = malloc(len + 1);
+    ppd_malloc(name, char, len + 1);
     memcpy(name, current_ppd.value.string.text, len);
     name[len] = '\0';
     inc_ppd;
@@ -65,7 +67,7 @@ int get_infix_bp(TokenType type) {
 }
 
 Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
-    Expr* left = malloc(sizeof(Expr));
+    ppd_malloc(left, Expr, 1);
     if (current_ppd.type == TOKEN_INTEGER) {
         left->type = EXPR_LITERAL_INTEGER;
         left->value.integer = current_ppd.value.integer;
@@ -98,7 +100,7 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
         }
         inc_ppd;
         Expr* right = parse_expr_bp(ppd, bp + 1);
-        Expr* new_left = malloc(sizeof(Expr));
+        ppd_malloc(new_left, Expr, 1);
         new_left->type = EXPR_BINOP;
         new_left->value.binop.left = left;
         new_left->value.binop.op = op;
@@ -121,7 +123,7 @@ bool parse_stmt_decl(ProgramParseData* ppd, Stmt* stmt) {
     stmt->type = STMT_DECLARE;
     stmt->value.decl.name = take_ident(ppd);
     if (!consume_token(ppd, TOKEN_EQUALS)) return false;
-    Expr* expr = malloc(sizeof(Expr));
+    ppd_malloc(expr, Expr, 1);
     parse_expr(ppd, &expr);
     stmt->value.decl.expr = expr;
     if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
@@ -156,7 +158,7 @@ bool parse_stmt_ass(ProgramParseData* ppd, Stmt* stmt) {
             print_err("Expected `=` found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
     }
     inc_ppd;
-    Expr* expr = malloc(sizeof(Expr));
+    ppd_malloc(expr, Expr, 1);
     parse_expr(ppd, &expr);
     stmt->value.ass.expr = expr;
     if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
@@ -169,7 +171,7 @@ bool parse_stmt_if(ProgramParseData* ppd, Stmt* stmt) {
     // if expr { stmt; stmt; }
     stmt->type = STMT_IF;
     inc_ppd;
-    Expr* expr = malloc(sizeof(Expr));
+    ppd_malloc(expr, Expr, 1);
     parse_expr(ppd, &expr);
     stmt->value.ifs.expr = expr;
     if (!consume_token(ppd, TOKEN_LBRACE)) return false;
@@ -229,8 +231,14 @@ bool parse_item_fn(ProgramParseData* ppd, Program* program) {
     return true;
 }
 
-Option parse(const char* filepath, const char* code, const Token* tokens) {
+void free_program(Program** prog) {
+    free(*prog);
+    *prog = NULL;
+}
+
+Option parse(const char* filepath, const char* code, const Token* tokens, Drop** drops) {
     Option op = {.t = OPTION_None};
+    __attribute__((cleanup(free_program))) 
     Program* program = calloc(1, sizeof(Program));
     size_t current = 0;
 
@@ -239,6 +247,7 @@ Option parse(const char* filepath, const char* code, const Token* tokens) {
         .code = code,
         .tokens = tokens,
         .current = &current,
+        .drops = drops
     };
 
     while (tokens[current].type != TOKEN_EOF) {
@@ -252,8 +261,11 @@ Option parse(const char* filepath, const char* code, const Token* tokens) {
         }
     }
 
+    
+    Program* take = program;
+    program = NULL;
     op.t = OPTION_Some;
-    op.data = program;
+    op.data = take;
     return op;
 }
 

@@ -5,3 +5,4 @@ prog
 nob.old
 nob.exe*
 .vscode
+*.code-workspace

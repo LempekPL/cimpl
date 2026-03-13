@@ -22,6 +22,7 @@ bool add_all_files(Nob_Walk_Entry entry) {
 
 typedef struct {
     bool debug;
+    bool pedantic;
     char* runner;
 } Args;
 
@@ -35,6 +36,8 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--runWith") == 0) {
             i++;
             args.runner = argv[i];
+        } else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--pedantic") == 0) {
+            args.pedantic = true;
         }
     }
 
@@ -48,6 +51,7 @@ int main(int argc, char** argv) {
     nob_cc_output(&cmd, BUILD_FOLDER "cimpl");
 
     if (!nob_walk_dir("src", add_all_files, &cmd)) return 1;
+    if (args.pedantic) nob_cmd_append(&cmd, "-Wpedantic", "-fsanitize=leak");
     if (!nob_cmd_run(&cmd)) return 1;
 
     char* val;

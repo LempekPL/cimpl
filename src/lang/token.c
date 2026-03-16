@@ -22,6 +22,8 @@
     do_wide_token('<', TOKEN_LESSER, '=', TOKEN_LESSEREQUALS) \
     do_wide_token('&', TOKEN_BITAND, '&', TOKEN_AND) \
     do_wide_token('|', TOKEN_BITOR, '|', TOKEN_OR) \
+    do_token('.', TOKEN_DOT) \
+    do_token(',', TOKEN_COMMA) \
     do_token(':', TOKEN_COLON) \
     do_token(';', TOKEN_SEMICOLON) \
     do_token('(', TOKEN_LPAREN) \

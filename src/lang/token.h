@@ -28,6 +28,8 @@ typedef enum {
     TOKEN_AND,
     TOKEN_BITOR,
     TOKEN_OR,
+    TOKEN_DOT,
+    TOKEN_COMMA,
     TOKEN_COLON,
     TOKEN_SEMICOLON,
     TOKEN_LPAREN,    

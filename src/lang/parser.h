@@ -5,7 +5,11 @@
 #include "../dropper.h"
 
 typedef enum {
-    EXPR_LITERAL_INTEGER,
+    // literal
+    EXPR_INTEGER,
+    EXPR_STRING,
+
+    // other
     EXPR_IDENTIFIER,
     EXPR_BINOP,
     EXPR_CALL
@@ -13,7 +17,7 @@ typedef enum {
 
 typedef struct {
     char* name;
-    // TODO: args
+    struct expr_t* exprs;
 } ExprCall;
 
 typedef struct {
@@ -26,6 +30,7 @@ typedef struct expr_t {
     ExprType type;
     union {
         size_t integer;
+        char* string;
         ExprBinOp binop;
         char* ident;
         ExprCall call;
@@ -52,6 +57,7 @@ typedef struct {
 
 typedef struct {
     char* name;
+    Expr* exprs;
 } StmtCall;
 
 typedef struct {

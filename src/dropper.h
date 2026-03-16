@@ -30,6 +30,7 @@ void drop_free_(void** ptrV);
 #ifdef DROP_IMPLEMENTATION
 
 void drop_run(Drop** drops) {
+    return;
     if (drops == NULL) return;
     for (ssize_t i = vec_len(*drops) - 1; i >= 0; i--) {
         Drop d = (*drops)[i];

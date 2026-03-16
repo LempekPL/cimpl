@@ -25,11 +25,16 @@ typedef struct {
     Drop** drops;
 } ProgramParseData;
 
-bool consume_token(ProgramParseData* ppd, TokenType tt) {
+bool optional_consume_token(ProgramParseData* ppd, TokenType tt) {
     if (current_ppd.type == tt) {
         inc_ppd;
         return true;
     }
+    return false;
+}
+
+bool consume_token(ProgramParseData* ppd, TokenType tt) {
+    if (optional_consume_token(ppd, tt)) return true;
     print_err("Expected `%tr` found `%t` at %y\n", tt, current_ppd, ppd_printable(current_ppd));
     return false;
 }
@@ -70,18 +75,40 @@ int get_infix_bp(TokenType type) {
     }
 }
 
+bool parse_expr(ProgramParseData* ppd, Expr** expr);
+bool parse_call_args(ProgramParseData* ppd, Expr** exprs) {
+    // (arg1, arg2,)
+    while (current_ppd.type != TOKEN_RPAREN) {
+        Expr* expr = NULL;
+        if (!parse_expr(ppd, &expr)) return false;
+        vec_push(*exprs, *expr);
+        optional_consume_token(ppd, TOKEN_COMMA);
+    }
+    return true;
+}
+
 Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
     ppd_malloc(left, Expr, 1);
     // Expr* left = malloc(sizeof(Expr));
     if (current_ppd.type == TOKEN_INTEGER) {
-        left->type = EXPR_LITERAL_INTEGER;
+        left->type = EXPR_INTEGER;
         left->value.integer = current_ppd.value.integer;
+        inc_ppd;
+    } else if (current_ppd.type == TOKEN_STRING) {
+        left->type = EXPR_STRING;
+        size_t len = current_ppd.value.string.length;
+        char* name = malloc(len + 1);
+        memcpy(name, current_ppd.value.string.text, len);
+        name[len] = '\0';
+        left->value.string = name;
         inc_ppd;
     } else if (current_ppd.type == TOKEN_IDENTIFIER && next_ppd.type == TOKEN_LPAREN) {
         left->type = EXPR_CALL;
-        OptionUnwrap(left->value.ident, take_ident(ppd));
+        OptionUnwrap(left->value.call.name, take_ident(ppd));
         if (!consume_token(ppd, TOKEN_LPAREN)) return false;
-        // TODO: function args
+        if (current_ppd.type != TOKEN_RPAREN) {
+            if (!parse_call_args(ppd, &left->value.call.exprs)) return false;
+        }
         if (!consume_token(ppd, TOKEN_RPAREN)) return false;
     }  else if (current_ppd.type == TOKEN_IDENTIFIER) {
         left->type = EXPR_IDENTIFIER;
@@ -93,7 +120,6 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
     }
     else {
         print_err("Expected expression found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
-        free(left);
         exit(1);
     }
 
@@ -140,9 +166,12 @@ bool parse_stmt_decl(ProgramParseData* ppd, Stmt* stmt) {
 bool parse_stmt_call(ProgramParseData* ppd, Stmt* stmt) {
     // ident(expr1, expr2);
     stmt->type = STMT_CALL;
+    stmt->value.call.exprs = NULL;
     OptionUnwrap(stmt->value.call.name, take_ident(ppd));
     if (!consume_token(ppd, TOKEN_LPAREN)) return false;
-    // TODO: function args
+    if (current_ppd.type != TOKEN_RPAREN) {
+        if (!parse_call_args(ppd, &stmt->value.call.exprs)) return false;
+    }
     if (!consume_token(ppd, TOKEN_RPAREN)) return false;
     if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
     return true;
@@ -287,8 +316,12 @@ void print_expr(Expr* expr, size_t indent) {
     print_indent(indent);
 
     switch (expr->type) {
-        case EXPR_LITERAL_INTEGER:
+        case EXPR_INTEGER:
             printf("Integer: %zu\n", expr->value.integer);
+            break;
+
+        case EXPR_STRING:
+            printf("String: %s\n", expr->value.string);
             break;
             
         case EXPR_IDENTIFIER:

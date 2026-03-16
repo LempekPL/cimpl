@@ -1,5 +1,8 @@
 fn main() {
-    let a; //= 1 && 10 + b * 2 >= 10 || 1;
+    print("Hello World!\n");
+
+    //let str = "abc";
+    //let a = 1 && 10 + b * 2 >= 10 || 1;
     //let b = read();
 
     //a = 1;
@@ -12,6 +15,6 @@ fn main() {
     //}
 }
 
-fn test() {
-    //let abe = 11;
-}
+//fn test() {
+//    let abe = 11;
+//}

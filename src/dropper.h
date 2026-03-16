@@ -15,21 +15,35 @@ typedef struct {
 #define drop_push(drops, func, value) do { vec_push((drops), ((Drop){(func), (void**)(value)})); } while (0)
 #define drop_free(drops, ptr) do { vec_push((drops), ((Drop){drop_free_, (void**)(ptr)})); } while (0)
 #define drop_vec(drops, value) do { vec_push((drops), ((Drop){drop_vec_, (void**)(value)})); } while (0)
+#define drop_box(drops, boxed) do { vec_push((drops), ((Drop){drop_box_, (void**)(boxed)})); } while (0)
+#define drop_box_push(drops, value) do { \
+    void** __boxed_value = malloc(sizeof(void*)); \
+    *__boxed_value = value; \
+    drop_box((drops), __boxed_value); \
+} while (0)
 
 void drop_run(Drop** drops);
+void drop_box_(void** box);
 void drop_vec_(void** vec);
 void drop_free_(void** ptrV);
 
 #ifdef DROP_IMPLEMENTATION
 
 void drop_run(Drop** drops) {
+    if (drops == NULL) return;
     for (ssize_t i = vec_len(*drops) - 1; i >= 0; i--) {
         Drop d = (*drops)[i];
-        if (d.func != NULL) {
+        if (d.func != NULL && d.arg != NULL) {
             d.func(d.arg);
         }
     }
     vec_free(*drops);
+}
+
+void drop_box_(void** box) {
+    if (box == NULL) return;
+    if (*box != NULL) free(*box);
+    free(box);
 }
 
 void drop_free_(void** ptrV) {

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 // #include "objgen/objgen.h"
-#include "vec.h"
+// #include "vec.h"
 #define DROP_IMPLEMENTATION
 #include "dropper.h"
 #include "lang/parser.h"
@@ -10,19 +10,22 @@
 #include "lang/util.h"
 
 bool read_file(const char* filepath, char** buffer) {
-    FILE *f = fopen(filepath, "r");
-    size_t length;
-    if (f) {
-        fseek(f, 0, SEEK_END);
-        length = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        *buffer = malloc(length);
-        if (*buffer) {
+    FILE *f = fopen(filepath, "rb");
+    if (!f) return false;
+
+    fseek(f, 0, SEEK_END);
+    long length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    *buffer = malloc(length + 1);
+    if (*buffer) {
         fread(*buffer, 1, length, f);
-        }
+        (*buffer)[length] = '\0';
         fclose(f);
         return true;
     }
+
+    fclose(f);
     return false;
 }
 
@@ -39,13 +42,12 @@ int main() {
     }
     Token* tokens = op_tokens.data;
     drop_vec(d, &tokens);
-    pretty_print_tokens(tokens);
+    // pretty_print_tokens(tokens);
     Option op_program = parse(file, code, tokens, &d);
     if (op_program.t == OPTION_None) {
         return 1;
     }
     Program* program = op_program.data;
-    drop_free(d, &program);
     print_program(program);
     return 0;
 }

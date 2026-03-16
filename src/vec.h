@@ -10,6 +10,15 @@ typedef struct vec {
 
 #define VEC_INIT 8
 
+#define vec_new(name, size) \
+    name = NULL; \
+    do { \
+        Vec* __h = malloc(sizeof(Vec) + (size) * sizeof(*(name)));\
+        __h->capacity = 2;\
+        __h->count = 0;\
+        (name) = (void*)(__h + 1);\
+    } while(0)
+
 #define vec_push(arr, x) \
     do {\
         if ((arr) == NULL) {\

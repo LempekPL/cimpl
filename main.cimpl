@@ -1,17 +1,17 @@
 fn main() {
-    let a = 1 && 10 + b * 2 >= 10 || 1;
-    let b = read();
+    let a; //= 1 && 10 + b * 2 >= 10 || 1;
+    //let b = read();
 
-    a = 1;
-    print();
+    //a = 1;
+    //print();
 
     // testing
-    if a >= 18 && b == 10 {
-        a /= 10;
+    //if a >= 18 && b == 10 {
+    //    a /= 10;
     //    print("test BC");
-    }
+    //}
 }
 
 fn test() {
-    let abe = 11;
+    //let abe = 11;
 }

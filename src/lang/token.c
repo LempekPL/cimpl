@@ -210,7 +210,7 @@ void token_cleanup(Token** tokens) {
 }
 
 Option tokenize(const char* filepath, const char* code) {
-    Option op = {.t = OPTION_None};
+    if (code == NULL) return OptionNone;
     __attribute__((cleanup(token_cleanup))) 
     Token* tokens = NULL;
     size_t line = 1;
@@ -246,7 +246,7 @@ Option tokenize(const char* filepath, const char* code) {
             size_t s_line = line;
             if (!read_string(&tokens, code, &current, &column, &line)) {
                 print_err("Missing terminating \" character at %y\n", filepath, s_line, s_col);
-                return op;
+                return OptionNone;
             }
             continue;
         }
@@ -280,19 +280,16 @@ Option tokenize(const char* filepath, const char* code) {
             CASE_LIST_OF_TOKENS
             default:
                 print_err("Unknown character `%c` at %y\n", c_char, filepath, line, column);
-                return op;
+                return OptionNone;
         }
         current++;
         column++;
     }
 
     make_token(TOKEN_EOF);
-
     Token* take = tokens;
     tokens = NULL;
-    op.t = OPTION_Some;
-    op.data = take;
-    return op;
+    return OptionSome(take);
 }
 
 #undef do_token

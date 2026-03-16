@@ -1,8 +1,11 @@
+#include <linux/limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
 #include "../vec.h"
+#include "token.h"
 #include "util.h"
 
 #define inc_ppd (*ppd->current)++
@@ -11,7 +14,8 @@
 #define next_ppd ppd->tokens[*ppd->current + 1]
 #define ppd_printable(token) ppd->filepath, token.start.line, token.start.column
 #define ppd_free(x) do { drop_free(*ppd->drops, (x)); } while (0)
-#define ppd_malloc(name, type, size) type* name = malloc(sizeof(type)*size); ppd_free(name);
+#define ppd_vec_free(x) do { drop_vec(*ppd->drops, (x)); } while (0)
+#define ppd_malloc(name, type, size) type* name = malloc(sizeof(type) * (size)); drop_box_push(*(ppd->drops), (name))
 
 typedef struct {
     const char* filepath;
@@ -30,17 +34,17 @@ bool consume_token(ProgramParseData* ppd, TokenType tt) {
     return false;
 }
 
-char* take_ident(ProgramParseData* ppd) {
+Option take_ident(ProgramParseData* ppd) {
     if (current_ppd.type != TOKEN_IDENTIFIER) {
         print_err("Expected identifier found `%t` at %y\n", current_ppd, ppd_printable(current_ppd));
-        exit(1);
+        return OptionNone;
     }
     size_t len = current_ppd.value.string.length;
     ppd_malloc(name, char, len + 1);
     memcpy(name, current_ppd.value.string.text, len);
     name[len] = '\0';
     inc_ppd;
-    return name;
+    return OptionSome(name);
 }
 
 int get_infix_bp(TokenType type) {
@@ -68,19 +72,20 @@ int get_infix_bp(TokenType type) {
 
 Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
     ppd_malloc(left, Expr, 1);
+    // Expr* left = malloc(sizeof(Expr));
     if (current_ppd.type == TOKEN_INTEGER) {
         left->type = EXPR_LITERAL_INTEGER;
         left->value.integer = current_ppd.value.integer;
         inc_ppd;
     } else if (current_ppd.type == TOKEN_IDENTIFIER && next_ppd.type == TOKEN_LPAREN) {
         left->type = EXPR_CALL;
-        left->value.ident = take_ident(ppd);
+        OptionUnwrap(left->value.ident, take_ident(ppd));
         if (!consume_token(ppd, TOKEN_LPAREN)) return false;
         // TODO: function args
         if (!consume_token(ppd, TOKEN_RPAREN)) return false;
     }  else if (current_ppd.type == TOKEN_IDENTIFIER) {
         left->type = EXPR_IDENTIFIER;
-        left->value.ident = take_ident(ppd);
+        OptionUnwrap(left->value.ident, take_ident(ppd));
     } else if (current_ppd.type == TOKEN_LPAREN) {
         inc_ppd;
         left = parse_expr_bp(ppd, 0); 
@@ -100,12 +105,12 @@ Expr* parse_expr_bp(ProgramParseData* ppd, int min_bp) {
         }
         inc_ppd;
         Expr* right = parse_expr_bp(ppd, bp + 1);
+        // Expr* new_left = malloc(sizeof(Expr));
         ppd_malloc(new_left, Expr, 1);
         new_left->type = EXPR_BINOP;
         new_left->value.binop.left = left;
         new_left->value.binop.op = op;
         new_left->value.binop.right = right;
-
         left = new_left;
     }
 
@@ -121,11 +126,13 @@ bool parse_stmt_decl(ProgramParseData* ppd, Stmt* stmt) {
     // let ident = expr;
     inc_ppd;
     stmt->type = STMT_DECLARE;
-    stmt->value.decl.name = take_ident(ppd);
-    if (!consume_token(ppd, TOKEN_EQUALS)) return false;
-    ppd_malloc(expr, Expr, 1);
-    parse_expr(ppd, &expr);
-    stmt->value.decl.expr = expr;
+    OptionUnwrap(stmt->value.decl.name, take_ident(ppd));
+    if (current_ppd.type != TOKEN_SEMICOLON) {
+        if (!consume_token(ppd, TOKEN_EQUALS)) return false;
+        ppd_malloc(expr, Expr, 1);
+        parse_expr(ppd, &expr);
+        stmt->value.decl.expr = expr;
+    }
     if (!consume_token(ppd, TOKEN_SEMICOLON)) return false;
     return true;
 }
@@ -133,7 +140,7 @@ bool parse_stmt_decl(ProgramParseData* ppd, Stmt* stmt) {
 bool parse_stmt_call(ProgramParseData* ppd, Stmt* stmt) {
     // ident(expr1, expr2);
     stmt->type = STMT_CALL;
-    stmt->value.call.name = take_ident(ppd);
+    OptionUnwrap(stmt->value.call.name, take_ident(ppd));
     if (!consume_token(ppd, TOKEN_LPAREN)) return false;
     // TODO: function args
     if (!consume_token(ppd, TOKEN_RPAREN)) return false;
@@ -144,7 +151,7 @@ bool parse_stmt_call(ProgramParseData* ppd, Stmt* stmt) {
 bool parse_stmt_ass(ProgramParseData* ppd, Stmt* stmt) {
     // ident +-*/= expr;
     stmt->type = STMT_ASSIGN;
-    stmt->value.ass.name = take_ident(ppd);
+    OptionUnwrap(stmt->value.ass.name , take_ident(ppd));
     switch (current_ppd.type) {
         case TOKEN_EQUALS:
         case TOKEN_PLUSEQUALS:
@@ -177,6 +184,7 @@ bool parse_stmt_if(ProgramParseData* ppd, Stmt* stmt) {
     if (!consume_token(ppd, TOKEN_LBRACE)) return false;
     stmt->value.ifs.stmts = NULL;
     parse_stmts(ppd, &stmt->value.ifs.stmts);
+    drop_box_push(*(ppd->drops), stmt->value.ifs.stmts);
     if (!consume_token(ppd, TOKEN_RBRACE)) return false;
     return true;
 }
@@ -218,28 +226,31 @@ bool parse_item_fn(ProgramParseData* ppd, Program* program) {
         .type = ITEM_FUNC
     };
     inc_ppd;
-    fun.value.fn.name = take_ident(ppd);
+    OptionUnwrap(fun.value.fn.name, take_ident(ppd));
     if (!consume_token(ppd, TOKEN_LPAREN)) return false;
     // TODO: function args
     if (!consume_token(ppd, TOKEN_RPAREN)) return false;
     if (!consume_token(ppd, TOKEN_LBRACE)) return false;
-    fun.value.fn.stmts = NULL;
+    vec_new(fun.value.fn.stmts, 2);
+    drop_vec(*ppd->drops, &fun.value.fn.stmts);
     if (!parse_stmts(ppd, &fun.value.fn.stmts)) return false;
-    printf("%zu\n\n", vec_len(fun.value.fn.stmts));
     if (!consume_token(ppd, TOKEN_RBRACE)) return false;
     vec_push(program->items, fun);
     return true;
 }
 
-void free_program(Program** prog) {
+void free_program(void** program) {
+    Program** prog = (Program**)program;
+    if (prog == NULL || *prog == NULL) return;
+    vec_free((*prog)->items);
     free(*prog);
-    *prog = NULL;
+    free(prog);
 }
 
 Option parse(const char* filepath, const char* code, const Token* tokens, Drop** drops) {
-    Option op = {.t = OPTION_None};
-    __attribute__((cleanup(free_program))) 
     Program* program = calloc(1, sizeof(Program));
+    Program** box_value(programPtr, program);
+    drop_push(*drops, free_program, programPtr);
     size_t current = 0;
 
     ProgramParseData ppd = {
@@ -253,20 +264,15 @@ Option parse(const char* filepath, const char* code, const Token* tokens, Drop**
     while (tokens[current].type != TOKEN_EOF) {
         switch (tokens[current].type) {
             case TOKEN_KW_FN:
-                if (!parse_item_fn(&ppd, program)) return op;
+                if (!parse_item_fn(&ppd, program)) return OptionNone;
                 break;
             default:
                 print_err("Expected item `fn` found `%t` at %y\n", tokens[current], filepath, tokens[current].start.line, tokens[current].start.column);
-                return op;
+                return OptionNone;
         }
     }
 
-    
-    Program* take = program;
-    program = NULL;
-    op.t = OPTION_Some;
-    op.data = take;
-    return op;
+    return OptionSome(program);
 }
 
 void print_indent(size_t level) {

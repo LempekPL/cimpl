@@ -5,8 +5,6 @@
 #include <string.h>
 #include "parser.h"
 #include "../vec.h"
-#include "token.h"
-#include "util.h"
 
 #define inc_ppd (*ppd->current)++
 #define dec_ppd (*ppd->current)--

@@ -1,6 +1,11 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <elf.h>
 #include "../vec.h"
+
+void create_obj() {
+    
+}
 
 void objgen() {
 
@@ -98,7 +103,7 @@ void padding(uint8_t** bytes, size_t pad_in_bytes) {
     }
 }
 
-void create_obj() {
+void create_obj_old() {
     uint64_t vaddress = 0x400000;
 
     uint8_t* prog = NULL;

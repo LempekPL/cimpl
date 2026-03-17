@@ -1,6 +1,5 @@
 #include "token.h"
 #include "../vec.h"
-#include "util.h"
 
 #include <ctype.h>
 #include <stdlib.h>

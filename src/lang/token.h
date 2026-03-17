@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "util.h"
+#include "../util.h"
 
 typedef enum {
     // token characters

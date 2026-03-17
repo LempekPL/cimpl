@@ -1,5 +1,5 @@
 #include "util.h"
-#include "token.h"
+#include "lang/token.h"
 #include <string.h>
 #include <stdarg.h>
 

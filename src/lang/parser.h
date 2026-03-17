@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "token.h"
+#include "../util.h"
 #include "../dropper.h"
 
 typedef enum {

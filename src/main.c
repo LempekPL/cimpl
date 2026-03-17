@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #include "objgen/objgen.h"
-// #include "vec.h"
+#define VEC_EXTRAS
+#include "vec.h"
 #define DROP_IMPLEMENTATION
 #include "dropper.h"
 #include "lang/parser.h"
@@ -30,7 +30,8 @@ bool read_file(const char* filepath, char** buffer) {
 }
 
 int main() {
-    create_obj();
+    ElfProgram* prog = create_program();
+    write_executable("prog", prog);
     // drop_new(d);
     // char* file = "./main.cimpl";
     // char* code = 0;

@@ -73,13 +73,13 @@ typedef void (*Vec_ForEach_Func)(VecFEData data);
         } \
     } while(0)
 
-void vec_for_each_fn_(void* vec, size_t typesize, Vec_ForEach_Func func, void* data);
+void vec_for_each_fn_(char* vec, size_t typesize, Vec_ForEach_Func func, void* data);
 
 #ifdef VEC_EXTRAS
 
 #define vec_for_each_fn(vec, func, data) vec_for_each_fn_(vec, sizeof(*vec), func, data)
 
-void vec_for_each_fn_(void* vec, size_t typesize, Vec_ForEach_Func func, void* data) {
+void vec_for_each_fn_(char* vec, size_t typesize, Vec_ForEach_Func func, void* data) {
     for (size_t i = 0; i < vec_len(vec); i++) { 
         func((VecFEData){.i = i, .element = &((vec)[i*typesize]), .data = data}); 
     } 

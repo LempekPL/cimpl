@@ -49,7 +49,6 @@ int main(int argc, char** argv) {
     nob_cc_flags(&cmd);
     if (args.debug) nob_cmd_append(&cmd, "-g");
     nob_cc_output(&cmd, BUILD_FOLDER "cimpl");
-
     if (!nob_walk_dir("src", add_all_files, &cmd)) return 1;
     if (args.pedantic) nob_cmd_append(&cmd, "-Wpedantic", "-fsanitize=leak");
     if (!nob_cmd_run(&cmd)) return 1;
